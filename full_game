@@ -1,0 +1,150 @@
+#include <iostream>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
+#include <cmath>
+#include <climits>
+
+using namespace std;
+
+const int BOARD_SIZE = 11;
+const int MONTE_CARLO_TRIALS = 1000;
+
+// Enum to represent the players
+enum Player { EMPTY, HUMAN, PROGRAM };
+
+// Function to initialize the board with empty cells
+void initializeBoard(vector<vector<Player>>& board) {
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        vector<Player> row(BOARD_SIZE, EMPTY);
+        board.push_back(row);
+    }
+}
+
+// Function to print the board with colored symbols
+void printBoard(const vector<vector<Player>>& board) {
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        // Indent the rows properly
+        for (int j = 0; j < i; ++j) {
+            cout << " ";
+        }
+
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            char symbol;
+            if (board[i][j] == HUMAN) {
+                cout << "\033[34mX\033[0m "; // Blue "X"
+            } else if (board[i][j] == PROGRAM) {
+                cout << "\033[31mO\033[0m "; // Red "O"
+            } else {
+                cout << ". ";
+            }
+        }
+
+        cout << endl;
+    }
+}
+
+// Function to check if a move is legal
+bool isValidMove(const vector<vector<Player>>& board, int row, int col) {
+    return (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] == EMPTY);
+}
+
+// Function to check if a player has won
+bool hasPlayerWon(const vector<vector<Player>>& board, Player player) {
+    // Implement your winning condition checks here
+    // For Hex, the winning condition depends on connecting opposite sides
+    // You can use depth-first search (DFS) to check for a winning path
+    return false; // Placeholder, you need to implement this
+}
+
+// Function to perform a Monte Carlo simulation to evaluate a move
+int monteCarloSimulation(const vector<vector<Player>>& board, int row, int col) {
+    int wins = 0;
+    for (int i = 0; i < MONTE_CARLO_TRIALS; ++i) {
+        // Simulate a game starting with the given move
+        vector<vector<Player>> simulationBoard = board;
+        simulationBoard[row][col] = PROGRAM;
+        bool programWins = hasPlayerWon(simulationBoard, PROGRAM);
+        if (programWins) {
+            wins++;
+        }
+    }
+    return wins;
+}
+
+// Function to select the best move for the program using Monte Carlo
+pair<int, int> getBestProgramMove(const vector<vector<Player>>& board) {
+    int bestWins = INT_MIN;
+    pair<int, int> bestMove = make_pair(-1, -1);
+
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            if (board[i][j] == EMPTY) {
+                int wins = monteCarloSimulation(board, i, j);
+                if (wins > bestWins) {
+                    bestWins = wins;
+                    bestMove = make_pair(i, j);
+                }
+            }
+        }
+    }
+
+    return bestMove;
+}
+
+// Main function to play the Hex game
+int main() {
+    vector<vector<Player>> board;
+    initializeBoard(board);
+
+    Player currentPlayer = HUMAN;
+    bool gameOver = false;
+
+    cout << "Welcome to Hex!" << endl;
+
+    while (!gameOver) {
+        printBoard(board);
+
+        if (currentPlayer == HUMAN) {
+            cout << "Human's turn. Enter your move (e.g., A1): ";
+            char colChar;
+            int row;
+            cin >> colChar >> row;
+            int col = colChar - 'A';
+
+            if (!isValidMove(board, row - 1, col)) {
+                cout << "Invalid move. Try again." << endl;
+                continue;
+            }
+
+            board[row - 1][col] = HUMAN;
+
+            if (hasPlayerWon(board, HUMAN)) {
+                printBoard(board);
+                cout << "Human wins!" << endl;
+                gameOver = true;
+            }
+        } else {
+            cout << "Program's turn..." << endl;
+            pair<int, int> programMove = getBestProgramMove(board);
+            if (programMove.first == -1) {
+                cout << "No legal moves left. It's a draw!" << endl;
+                gameOver = true;
+            } else {
+                int row = programMove.first;
+                int col = programMove.second;
+                board[row][col] = PROGRAM;
+
+                if (hasPlayerWon(board, PROGRAM)) {
+                    printBoard(board);
+                    cout << "Program wins!" << endl;
+                    gameOver = true;
+                }
+            }
+        }
+
+        currentPlayer = (currentPlayer == HUMAN) ? PROGRAM : HUMAN;
+    }
+
+    return 0;
+}
